@@ -5,10 +5,16 @@ var milisecnondsinminute = 1000 * 60;
 var milisecnondsinsecond = 1000;
 var lastSicho;
 
-document.getElementById('timer_div').innerHTML = getTime();
-var interval = setInterval(function() {
-  document.getElementById('timer_div').innerHTML = getTime();
-}, 1000);
+new Request.JSON({
+  url: '/lastsicho',
+  onSuccess: function(response){
+    lastSicho = new Date(response.date);
+    document.getElementById('lastSichoDate').innerHTML = lastSicho.toUTCString();
+    var interval = setInterval(function() {
+      document.getElementById('timer_div').innerHTML = getTime();
+    }, 1000);
+  }
+}).send();
 
 
 function getTime() {
@@ -24,8 +30,8 @@ function getTime() {
   time_in_mili = minutesResult.reminder;
   var secondsResult = convertFromMili(time_in_mili, milisecnondsinsecond);
   time_in_mili = secondsResult.reminder;
-  return "years: " + yearsResult.result + " days: " + daysResult.result +
-    " hours: " + hoursResult.result + " minutes: " + minutesResult.result + " seconds: " + secondsResult.result;
+  return yearsResult.result + ":" + daysResult.result +
+    ":" + hoursResult.result + ":" + minutesResult.result + ":" + secondsResult.result;
 }
 
 function convertFromMili(mili, convertRate) {
@@ -36,47 +42,41 @@ function convertFromMili(mili, convertRate) {
   };
 }
 
-new Request.JSON({
-    url: '/lastsicho',
-    onSuccess: function(response){
-        lastSicho = new Date(response.date);
-    }
-}).send();
 
 new Request.JSON({
-    url: '/excuses',
-    method: 'GET',
-    onSuccess: function(response) {
-        populateReasons(response);
-    }
+  url: '/excuses',
+  method: 'GET',
+  onSuccess: function(response) {
+    populateReasons(response);
+  }
 }).send();
 
 function postExcuse(excuse){
-    new Request.JSON({
-        url: '/excuses',
-        data: {newExcuse: excuse},
-        method: 'POST',
-    }).send();
+  new Request.JSON({
+    url: '/excuses',
+    data: {newExcuse: excuse},
+    method: 'POST',
+  }).send();
 }
 
 var populateReasons = function(obj) {
-	obj.forEach(function(excuse){
-        console.log(excuse);
-        var newExcuse = "<input type=\"radio\" name=\"reasons\" class=\"radioButton\" value=\""+ excuse + "\">" + excuse + "<br>";
-        console.log(newExcuse);
-		document.id('reasons').appendHTML(newExcuse);
+  obj.forEach(function(excuse){
+    console.log(excuse);
+    var newExcuse = "<input type=\"radio\" name=\"reasons\" class=\"radioButton\" value=\""+ excuse + "\">" + excuse + "<br>";
+    console.log(newExcuse);
+    document.id('reasons').appendHTML(newExcuse);
   });
 };
 
 document.id('reportButton').addEvents(
-    {
-        click: function(){
-            var radio = document.querySelector('input[name="reasons"]:checked');
-            if (radio.id === 'specialRadio') {
-                postExcuse($('newExcuse').value);
-            } else {
-                postExcuse(radio.value);
-            }
-        }
+  {
+    click: function(){
+      var radio = document.querySelector('input[name="reasons"]:checked');
+      if (radio.id === 'specialRadio') {
+        postExcuse($('newExcuse').value);
+      } else {
+        postExcuse(radio.value);
+      }
     }
+  }
 );
