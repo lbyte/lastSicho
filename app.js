@@ -5,6 +5,8 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+var mongoose = require('mongoose');
+
 var routes = require('./routes/index');
 var users = require('./routes/users');
 
@@ -23,6 +25,19 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+mongoose.connect('mongodb://localhost/test');
+
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function() {
+      console.log('connected to mongodb');
+});
+var excuseSchema = mongoose.Schema({
+    name: {type : String, unique : true, dropDups: true },
+    times: Number
+});
+var Excuse = mongoose.model('Excuse', excuseSchema);
+
 app.use('/', routes);
 app.use('/users', users);
 
@@ -30,14 +45,32 @@ app.use('/lastsicho', function(req,res,next) {
     res.json({date: lastSicho});
 });
 
-var excuses = ['dana is sick', 'im tired', 'lame excuse'];
 app.get('/excuses', function(req,res,next) {
-    res.json(excuses);
+    Excuse.find(function(err, excuses){
+        if (err) {
+            console.error(err);
+        } else {
+            console.log(excuses);
+            excuses = excuses.map(function(excuse){return excuse.name;});
+            res.json(excuses);
+        }
+    });
 });
 
 app.post('/excuses', function(req,res,next) {
     console.log('new excuse is' + JSON.stringify(req.body));
-    excuses.push(req.body.newExcuse);
+    Excuse.findOneAndUpdate({name: req.body.newExcuse}, {$inc:{times:1}}, function(err, excuse) {
+        if (err) {
+            console.error(err);
+        } else if (excuse === null) {
+            var newExcuse = new Excuse({name: req.body.newExcuse, times: 1});
+            newExcuse.save(function(err) {
+                if (err) {
+                    console.error(err);
+                }
+            });
+        }
+    });
     lastSicho = new Date();
     res.status(200).end();
 });

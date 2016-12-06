@@ -42,20 +42,23 @@ function convertFromMili(mili, convertRate) {
   };
 }
 
-
-new Request.JSON({
-  url: '/excuses',
-  method: 'GET',
-  onSuccess: function(response) {
-    populateReasons(response);
-  }
-}).send();
-
+function updateReasons() {
+    new Request.JSON({
+        url: '/excuses',
+        method: 'GET',
+        onSuccess: function(response) {
+            populateReasons(response);
+        }
+    }).send();
+}
 function postExcuse(excuse){
   new Request.JSON({
     url: '/excuses',
     data: {newExcuse: excuse},
     method: 'POST',
+    onSuccess: function(){
+        updateReasons();
+    }
   }).send();
 }
 
@@ -67,6 +70,8 @@ var populateReasons = function(obj) {
     document.id('reasons').appendHTML(newExcuse);
   });
 };
+
+updateReasons();
 
 document.id('reportButton').addEvents(
   {
